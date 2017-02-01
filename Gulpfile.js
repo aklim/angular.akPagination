@@ -24,7 +24,7 @@ gulp.task('http-server', function () {
         .use(connect.static('./demo'))
         .listen('9001');
 
-    console.log('Server listening on http://localhost:9000');
+    console.log('Server listening on http://localhost:9001');
 });
 
 gulp.task('build', function () {

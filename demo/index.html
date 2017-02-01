@@ -16,12 +16,15 @@
       (function (angular) {
           "use strict";
           var akApp = angular
-              .module('akApp', ['ui.router', 'angular.akPagination']);
+              .module('akApp', ['ui.router', 'angular.akPagination'])
+              .config(function (paginationTemplateProvider) {
+                  paginationTemplateProvider.setPath('views/directives/Paginator.tpl.html');
+              });
 
           akApp.controller('ctrl', [
               '$scope',
               function ($scope) {
-                  $scope.title = 'Hello';
+                  $scope.items = [1, 2, 3, 4, 5];
               }
           ]);
       })(window.angular);
@@ -30,7 +33,9 @@
 <body ng-app="akApp">
 
 <div ng-controller="ctrl">
-  {{title}}
+  
+  <div ak-pagination="item in items | itemsPerPage: 3"></div>
+  
 </div>
 
 
