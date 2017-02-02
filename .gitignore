@@ -22,3 +22,4 @@ fabric.properties
 /node_modules/
 /bower_components/
 /demo/angular.akPagination.js
+/demo/angular.akPagination.tpl.html

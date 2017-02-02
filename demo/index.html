@@ -25,6 +25,11 @@
               '$scope',
               function ($scope) {
                   $scope.items = [1, 2, 3, 4, 5];
+                  $scope.page = 1;
+                  $scope.load = function (page) {
+                      $scope.page = page;
+                      return $scope.items;
+                  }
               }
           ]);
       })(window.angular);
@@ -34,7 +39,15 @@
 
 <div ng-controller="ctrl">
   
-  <div ak-pagination="item in items | itemsPerPage: 3"></div>
+  <div ak-paginate="item in items | itemsPerPage: 3">
+    {{item}}
+  </div>
+  
+  <ak-pagination-controls boundary-links="true"
+                           template-url="angular.akPagination.tpl.html"
+                           auto-hide="false"
+                           on-page-change="load(page)">
+  </ak-pagination-controls>
   
 </div>
 

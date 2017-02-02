@@ -5,21 +5,26 @@
  */
 
 (function () {
-    /* Config */
+    /**
+     * Config
+     */
+    var moduleName = 'angular.akPagination';
     var DEFAULT_ID = '__default';
 
-    angular
-        .module('angular.akPagination', [])
-        .directive('akPagination', ['$compile', '$parse', 'paginationService', akPaginationDirective])
-        .directive('dirPaginateNoCompile', noCompileDirective)
-        .directive('dirPaginationControls', ['paginationService', 'paginationTemplate', paginationControlsDirective])
-        .filter('itemsPerPage', ['paginationService', itemsPerPageFilter])
-        .service('paginationService', paginationService)
-        .provider('paginationTemplate', paginationTemplateProvider)
-        .run(['$templateCache', paginationControlsTemplateInstaller]);
+    /**
+     * Module
+     */
+    angular.module(moduleName, [])
+           .directive('akPaginate', ['$compile', '$parse', 'paginationService', akPaginateDirective])
+           .directive('dirPaginateNoCompile', noCompileDirective)
+           .directive('akPaginationControls', ['paginationService', 'paginationTemplate',
+               akPaginationControlsDirective])
+           .filter('itemsPerPage', ['paginationService', itemsPerPageFilter])
+           .service('paginationService', paginationService)
+           .provider('paginationTemplate', paginationTemplateProvider)
+           .run(['$templateCache', dirPaginationControlsTemplateInstaller]);
 
-    //region Pagination directive
-    function akPaginationDirective($compile, $parse, paginationService) {
+    function akPaginateDirective($compile, $parse, paginationService) {
 
         return {
             terminal:     true,
@@ -30,7 +35,7 @@
 
         function dirPaginationCompileFn(tElement, tAttrs) {
 
-            var expression = tAttrs.akPagination;
+            var expression = tAttrs.akPaginate;
             // regex taken directly from
             // https://github.com/angular/angular.js/blob/v1.4.x/src/ng/directive/ngRepeat.js#L339
             var match = expression.match(/^\s*([\s\S]+?)\s+in\s+([\s\S]+?)(?:\s+as\s+([\s\S]+?))?(?:\s+track\s+by\s+([\s\S]+?))?\s*$/);
@@ -45,7 +50,7 @@
             addNoCompileAttributes(tElement);
 
             // If any value is specified for paginationId, we register the un-evaluated expression at this stage for
-            // the benefit of any dir-pagination-controls directives that may be looking for this ID.
+            // the benefit of any ak-pagination-controls directives that may be looking for this ID.
             var rawId = tAttrs.paginationId || DEFAULT_ID;
             paginationService.registerInstance(rawId);
 
@@ -55,7 +60,7 @@
                 // attribute and potentially register a new ID if it evaluates to a different value than the rawId.
                 var paginationId = $parse(attrs.paginationId)(scope) || attrs.paginationId || DEFAULT_ID;
 
-                // (TODO: this seems sound, but I'm reverting as many bugs followed it's introduction.
+                // (TODO: this seems sound, but I'm reverting as many bug reports followed it's introduction in 0.11.0.
                 // Needs more investigation.)
                 // In case rawId != paginationId we deregister using rawId for the sake of general cleanliness
                 // before registering using paginationId
@@ -97,7 +102,7 @@
                 // Delegate to the link function returned by the new compilation of the ng-repeat
                 compiled(scope);
 
-                // (TODO: Reverting this due to many bugs. Needs investigation as the
+                // (TODO: Reverting this due to many bug reports in v 0.11.0. Needs investigation as the
                 // principle is sound)
                 // When the scope is destroyed, we make sure to remove the reference to it in paginationService
                 // so that it can be properly garbage collected
@@ -163,7 +168,7 @@
         }
 
         /**
-         * Removes the variations on dir-paginate (data-, -start, -end) and the dir-paginate-no-compile directives.
+         * Removes the variations on ak-paginate (data-, -start, -end) and the dir-paginate-no-compile directives.
          * @param element
          */
         function removeTemporaryAttributes(element) {
@@ -175,9 +180,9 @@
             });
             element.eq(0)
                    .removeAttr('dir-paginate-start')
-                   .removeAttr('dir-paginate')
+                   .removeAttr('ak-paginate')
                    .removeAttr('data-dir-paginate-start')
-                   .removeAttr('data-dir-paginate');
+                   .removeAttr('data-ak-paginate');
             element.eq(element.length - 1)
                    .removeAttr('dir-paginate-end')
                    .removeAttr('data-dir-paginate-end');
@@ -210,10 +215,24 @@
         }
     }
 
-    //endregion
+    /**
+     * This is a helper directive that allows correct compilation when in multi-element mode (ie dir-paginate-start,
+     * dir-paginate-end). It is dynamically added to all elements in the ak-paginate compile function, and it prevents
+     * further compilation of any inner directives. It is then removed in the link function, and all inner directives
+     * are then manually compiled.
+     */
+    function noCompileDirective() {
+        return {
+            priority: 5000,
+            terminal: true
+        };
+    }
 
-    //region pagination control directive
-    function paginationControlsDirective(paginationService, paginationTemplate) {
+    function dirPaginationControlsTemplateInstaller($templateCache) {
+        $templateCache.put('angularUtils.directives.dirPagination.template', '<ul class="pagination" ng-if="1 < pages.length || !autoHide"><li ng-if="boundaryLinks" ng-class="{ disabled : pagination.current == 1 }"><a href="" ng-click="setCurrent(1)">&laquo;</a></li><li ng-if="directionLinks" ng-class="{ disabled : pagination.current == 1 }"><a href="" ng-click="setCurrent(pagination.current - 1)">&lsaquo;</a></li><li ng-repeat="pageNumber in pages track by tracker(pageNumber, $index)" ng-class="{ active : pagination.current == pageNumber, disabled : pageNumber == \'...\' || ( ! autoHide && pages.length === 1 ) }"><a href="" ng-click="setCurrent(pageNumber)">{{ pageNumber }}</a></li><li ng-if="directionLinks" ng-class="{ disabled : pagination.current == pagination.last }"><a href="" ng-click="setCurrent(pagination.current + 1)">&rsaquo;</a></li><li ng-if="boundaryLinks"  ng-class="{ disabled : pagination.current == pagination.last }"><a href="" ng-click="setCurrent(pagination.last)">&raquo;</a></li></ul>');
+    }
+
+    function akPaginationControlsDirective(paginationService, paginationTemplate) {
 
         var numberRegex = /^\d+$/;
 
@@ -225,7 +244,7 @@
                 paginationId: '=?',
                 autoHide:     '=?'
             },
-            link:     paginationControlsLinkFn
+            link:     akPaginationControlsLinkFn
         };
 
         // We need to check the paginationTemplate service to see whether a template path or
@@ -246,12 +265,12 @@
         }
         return DDO;
 
-        function paginationControlsLinkFn(scope, element, attrs) {
+        function akPaginationControlsLinkFn(scope, element, attrs) {
 
             // rawId is the un-interpolated value of the pagination-id attribute. This is only important when the
-            // corresponding dir-paginate directive has not yet been linked (e.g. if it is inside an ng-if block), and
+            // corresponding ak-paginate directive has not yet been linked (e.g. if it is inside an ng-if block), and
             // in that case it prevents this controls directive from assuming that there is no corresponding
-            // dir-paginate directive and wrongly throwing an exception.
+            // ak-paginate directive and wrongly throwing an exception.
             var rawId = attrs.paginationId || DEFAULT_ID;
             var paginationId = scope.paginationId || attrs.paginationId || DEFAULT_ID;
 
@@ -474,25 +493,6 @@
         }
     }
 
-    //endregion
-
-    //region noCompileDirective
-    /**
-     * This is a helper directive that allows correct compilation when in multi-element mode (ie dir-paginate-start,
-     * dir-paginate-end). It is dynamically added to all elements in the dir-paginate compile function, and it prevents
-     * further compilation of any inner directives. It is then removed in the link function, and all inner directives
-     * are then manually compiled.
-     */
-    function noCompileDirective() {
-        return {
-            priority: 5000,
-            terminal: true
-        };
-    }
-
-    //endregion
-
-    //region pagination filter
     /**
      * This filter slices the collection into pages based on the current page number and number of items per page.
      * @param paginationService
@@ -542,9 +542,26 @@
         };
     }
 
-    //endregion
+    /**
+     * Shim for the Object.keys() method which does not exist in IE < 9
+     * @param obj
+     * @returns {Array}
+     */
+    function keys(obj) {
+        if (!Object.keys) {
+            var objKeys = [];
+            for (var i in obj) {
+                if (obj.hasOwnProperty(i)) {
+                    objKeys.push(i);
+                }
+            }
+            return objKeys;
+        }
+        else {
+            return Object.keys(obj);
+        }
+    }
 
-    //region pagination service
     /**
      * This service allows the various parts of the module to communicate and stay in sync.
      */
@@ -611,29 +628,18 @@
         this.isAsyncMode = function (instanceId) {
             return instances[instanceId].asyncMode;
         };
-
     }
 
-    //endregion
-
-    //region run handler
-    function paginationControlsTemplateInstaller($templateCache) {
-        $templateCache.put('angular.akPagination.template', '<ul class="pagination" ng-if="1 < pages.length || !autoHide"><li ng-if="boundaryLinks" ng-class="{ disabled : pagination.current == 1 }"><a href="" ng-click="setCurrent(1)">&laquo;</a></li><li ng-if="directionLinks" ng-class="{ disabled : pagination.current == 1 }"><a href="" ng-click="setCurrent(pagination.current - 1)">&lsaquo;</a></li><li ng-repeat="pageNumber in pages track by tracker(pageNumber, $index)" ng-class="{ active : pagination.current == pageNumber, disabled : pageNumber == \'...\' || ( ! autoHide && pages.length === 1 ) }"><a href="" ng-click="setCurrent(pageNumber)">{{ pageNumber }}</a></li><li ng-if="directionLinks" ng-class="{ disabled : pagination.current == pagination.last }"><a href="" ng-click="setCurrent(pagination.current + 1)">&rsaquo;</a></li><li ng-if="boundaryLinks"  ng-class="{ disabled : pagination.current == pagination.last }"><a href="" ng-click="setCurrent(pagination.last)">&raquo;</a></li></ul>');
-    }
-
-    //endregion
-
-    //region paginationTemplateProvider
     /**
-     * This provider allows global configuration of the template path used by the akPagination directive.
+     * This provider allows global configuration of the template path used by the ak-pagination-controls directive.
      */
     function paginationTemplateProvider() {
 
-        var templatePath = 'angular.akPagination.template';
+        var templatePath = 'angularUtils.directives.dirPagination.template';
         var templateString;
 
         /**
-         * Set a templateUrl to be used by all instances of <ak-pagination>
+         * Set a templateUrl to be used by all instances of <ak-pagination-controls>
          * @param {String} path
          */
         this.setPath = function (path) {
@@ -642,7 +648,7 @@
 
         /**
          * Set a string of HTML to be used as a template by all instances
-         * of <ak-pagination>. If both a path *and* a string have been set,
+         * of <ak-pagination-controls>. If both a path *and* a string have been set,
          * the string takes precedence.
          * @param {String} str
          */
@@ -651,7 +657,6 @@
         };
 
         this.$get = function () {
-
             return {
                 getPath:   function () {
                     return templatePath;
@@ -661,8 +666,5 @@
                 }
             };
         };
-
     }
-
-    //endregion
 })();
